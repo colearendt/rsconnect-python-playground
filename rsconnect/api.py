@@ -105,6 +105,15 @@ class RSConnect(HTTPServer):
     def app_config(self, app_id):
         return self.get("applications/%s/config" % app_id)
 
+    def inst_static(self):
+        return self.get("v1/instrumentation/content/visits")
+
+    def inst_shiny(self):
+        return self.get("v1/instrumentation/shiny/usage")
+
+    def procs(self):
+        return self.get("metrics/procs")
+
     def task_get(self, task_id, first_status=None):
         params = None
         if first_status is not None:
