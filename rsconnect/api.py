@@ -126,9 +126,6 @@ class RSConnect(HTTPServer):
             # create an app if id is not provided
             app = self.app_create(app_name)
             self._server.handle_bad_response(app)
-            app_id = app["id"]
-            # Force the title to update.
-            title_is_default = False
         else:
             # assume app exists. if it was deleted then Connect will
             # raise an error
