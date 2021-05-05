@@ -4,6 +4,7 @@ RStudio Connect API client and utility functions
 
 import time
 from _ssl import SSLError
+from os import environ
 
 from rsconnect.http_support import HTTPResponse, HTTPServer, append_to_path, CookieJar
 from rsconnect.log import logger
@@ -105,6 +106,15 @@ class RSConnect(HTTPServer):
     def app_config(self, app_id):
         return self.get("applications/%s/config" % app_id)
 
+    def inst_static(self):
+        return self.get("v1/instrumentation/content/visits")
+
+    def inst_shiny(self):
+        return self.get("v1/instrumentation/shiny/usage")
+
+    def procs(self):
+        return self.get("metrics/procs")
+
     def task_get(self, task_id, first_status=None):
         params = None
         if first_status is not None:
@@ -192,6 +202,36 @@ class RSConnect(HTTPServer):
                 raise RSConnectException("Task exited with status %d." % exit_code)
 
         return new_last_status
+
+
+def rstudio_connect(url=None, api_key=None, insecure=False, ca_data=None):
+    """
+    Connect to the RStudio Connect server.
+
+    :param url: the RStudio Connect URL. Defaults to the CONNECT_SERVER environment variable
+    :param api_key: the RStudio Connect API Key. Defaults to the CONNECT_API_KEY environment variable
+    :param insecure: Whether to do authentication / certificate chekcs, etc.
+    :param ca_data: The Certificate Authority data to use for the Connect API client
+    :return: an RSConnectServer object
+    """
+
+    if not url:
+        url = environ.get("CONNECT_SERVER")
+        if not url:
+            raise RSConnectException(
+                "Please define a URL for the RStudio Connect server. "
+                "You can use the CONNECT_SERVER environment variable"
+            )
+    if not api_key:
+        api_key = environ.get("CONNECT_API_KEY")
+        if not api_key:
+            raise RSConnectException(
+                "Please define an API Key for the RStudio Connect server. "
+                "You can use the CONNECT_API_KEY enviornment variable"
+            )
+    connect_server = RSConnectServer(url=url, api_key=api_key, insecure=insecure, ca_data=ca_data)
+    verify_server(connect_server)
+    return connect_server
 
 
 def verify_server(connect_server):
