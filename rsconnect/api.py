@@ -121,19 +121,27 @@ class RSConnect(HTTPServer):
             params = {"first_status": first_status}
         return self.get("tasks/%s" % task_id, query_params=params)
 
-    def deploy(self, app_id, app_name, app_title, title_is_default, tarball):
+    def app_ensure(self, app_id, app_name):
         if app_id is None:
             # create an app if id is not provided
             app = self.app_create(app_name)
             self._server.handle_bad_response(app)
-            app_id = app["id"]
-            # Force the title to update.
-            title_is_default = False
         else:
             # assume app exists. if it was deleted then Connect will
             # raise an error
             app = self.app_get(app_id)
             self._server.handle_bad_response(app)
+        return app
+
+    def deploy(self, app_id, app_name, app_title, title_is_default, tarball):
+
+        app = self.app_ensure(app_id=app_id, app_name=app_name)
+
+        if not app_id or app_id != app["id"]:
+            # the app was just created by name
+            app_id = app["id"]
+            # Force the title to update.
+            title_is_default = False
 
         if app["title"] != app_title and not title_is_default:
             self._server.handle_bad_response(self.app_update(app_id, {"title": app_title}))
@@ -231,7 +239,7 @@ def rstudio_connect(url=None, api_key=None, insecure=False, ca_data=None):
             )
     connect_server = RSConnectServer(url=url, api_key=api_key, insecure=insecure, ca_data=ca_data)
     verify_server(connect_server)
-    return connect_server
+    return RSConnect(connect_server)
 
 
 def verify_server(connect_server):
