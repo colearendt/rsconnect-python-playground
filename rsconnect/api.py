@@ -143,7 +143,6 @@ class RSConnect(HTTPServer):
             # Force the title to update.
             title_is_default = False
 
-
         if app["title"] != app_title and not title_is_default:
             self._server.handle_bad_response(self.app_update(app_id, {"title": app_title}))
             app["title"] = app_title
