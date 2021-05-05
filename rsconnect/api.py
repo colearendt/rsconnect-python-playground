@@ -120,16 +120,16 @@ class RSConnect(HTTPServer):
 
     def tag_create(self, name, parent_id=None):
         body = dict(name=name)
-        if not parent_id:
+        if parent_id:
             body.update(parent_id=parent_id)
         return self.post("tags", body=body)
 
     def tag_get(self, id):
-        return self.get("tags/%" % id)
+        return self.get("tags/%s" % id)
 
     def tag_delete(self, id):
-        tag_version = self.tag(id=id)['version']
-        return self.delete("tags/%?version=%" % id, tag_version)
+        tag_version = self.tag_get(id=id)['version']
+        return self.delete("tags/%s?version=%s" % (id, tag_version))
 
     def task_get(self, task_id, first_status=None):
         params = None
