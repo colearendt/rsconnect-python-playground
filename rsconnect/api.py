@@ -170,17 +170,17 @@ class RSConnect(HTTPServer):
         # check for app ensure
         app = self.app_create(app_name)
         self._server.handle_bad_response(app)
-        
-        self.post("applications/%s/repo" % app["guid"], 
-            body = { 
+
+        self.post("applications/%s/repo" % app["guid"],
+            body = {
                 "repository" : repository, "branch" : branch , "subdirectory" : subdirectory
             }
         )
-        
+
         self.post("applications/%s/deploy" % app["guid"], body = dict())
-        
-    
-    
+
+
+
     def deploy(self, app_id, app_name, app_title, title_is_default, tarball):
 
         app = self.app_ensure(app_id=app_id, app_name=app_name)
@@ -568,7 +568,7 @@ def find_unique_name(connect_server, name):
     return name
 
 
-def create_tag_tree(connect: RSConnect, *args, verbose=False) -> list:
+def create_tag_tree(connect, *args, verbose=False):
     parent_id = None
     tag_tree = []
     for tag in args:
