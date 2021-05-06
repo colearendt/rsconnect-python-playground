@@ -6,7 +6,7 @@ import time
 from _ssl import SSLError
 from os import environ
 
-from rsconnect.http_support import HTTPResponse, HTTPServer, append_to_path, CookieJar
+from rsconnect.http_support import HTTPResponse, HTTPServer, append_to_path, CookieJar, append_query_params
 from rsconnect.log import logger
 from rsconnect.models import AppModes
 
@@ -124,8 +124,10 @@ class RSConnect(HTTPServer):
             body.update(parent_id=parent_id)
         return self.post("tags", body=body)
 
-    def tag_get(self, id):
-        return self.get("tags/%s" % id)
+    def tag_get(self, id=None):
+        if id:
+            return self.get("tags/%s" % id)
+        return self.get("tags")
 
     def tag_delete(self, id):
         tag_version = self.tag_get(id=id)['version']
@@ -534,3 +536,10 @@ def find_unique_name(connect_server, name):
         name = test
 
     return name
+
+
+def recursive_find_tag(tags, tag, parent_id=None):
+    tags_noname = tags
+    tags_noname['name'] = None
+    tags_noname['id'] = None
+    recurse_result = [x['children'] for x in tags_noname if len(x['children'])]
