@@ -149,6 +149,21 @@ class RSConnect(HTTPServer):
             self._server.handle_bad_response(app)
         return app
 
+    def deploy_git(self, app_name, repository, branch, subdirectory):
+        # check for app ensure
+        app = self.app_create(app_name)
+        self._server.handle_bad_response(app)
+        
+        self.post("applications/%s/repo" % app["guid"], 
+            body = { 
+                "repository" : repository, "branch" : branch , "subdirectory" : subdirectory
+            }
+        )
+        
+        self.post("applications/%s/deploy" % app["guid"], body = dict())
+        
+    
+    
     def deploy(self, app_id, app_name, app_title, title_is_default, tarball):
 
         app = self.app_ensure(app_id=app_id, app_name=app_name)
