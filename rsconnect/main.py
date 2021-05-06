@@ -896,6 +896,41 @@ def deploy_help():
     click.echo("    rsconnect deploy manifest [-n <name>|-s <url> -k <key>] <manifest-file>")
     click.echo()
 
+@deploy.command(
+    name="git-repo",
+    short_help="Deploy git repository with exisiting manifest file",
+    help="Deploy git repository with exisiting manifest file"
+)
+@click.option("--name", "-n", help="The nickname of the RStudio Connect server to deploy to.")
+@click.option(
+    "--server", "-s", envvar="CONNECT_SERVER", help="The URL for the RStudio Connect server to deploy to.",
+)
+@click.option(
+    "--api-key", "-k", envvar="CONNECT_API_KEY", help="The API key to use to authenticate with RStudio Connect.",
+)
+@click.option(
+    "--insecure", "-i", envvar="CONNECT_INSECURE", is_flag=True, help="Disable TLS certification/host validation.",
+)
+@click.option(
+    "--cacert",
+    "-c",
+    envvar="CONNECT_CA_CERTIFICATE",
+    type=click.File(),
+    help="The path to trusted TLS CA certificates.",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Print detailed messages.")
+@click.argument('app_name')
+@click.argument('repository')
+@click.argument('branch')
+@click.argument('subdirectory')
+def deploy_git(name, server, api_key, insecure, cacert, verbose, app_name, repository, branch, subdirectory):
+    set_verbosity(verbose)
+
+    with cli_feedback("Checking arguments"):
+        connect_server = _validate_deploy_to_args(name, server, api_key, insecure, cacert)
+
+    connect_client = api.RSConnect(connect_server)
+    connect_client.deploy_git(app_name, repository, branch, subdirectory)
 
 @cli.group(
     name="write-manifest",
