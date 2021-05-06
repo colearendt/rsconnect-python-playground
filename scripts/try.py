@@ -1,11 +1,11 @@
-import rsconnect.api as rscapi
+import rsconnect.api as rsc
 from dotenv import load_dotenv
 
-# define CONNECT_SERVER and CONNECT_API_KEY env vars in the ".env" file
+# define CONNECT_SERVER and CONNECT_API_KEY env vars in the ".env.prod" file
 load_dotenv()
 
-myrsc = rscapi.rstudio_connect()
+client = rsc.rstudio_connect()
 
-inst_static = myrsc.inst_static()
-inst_shiny = myrsc.inst_shiny()
-procs = myrsc.procs()
+inst_static = client.inst_static()
+inst_shiny = client.inst_shiny()
+procs = client.procs()
