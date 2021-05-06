@@ -145,7 +145,7 @@ class RSConnect(HTTPServer):
         )
         
         self.post("applications/%s/deploy" % app["guid"], body = dict())
-        
+        return app
     
     
     def deploy(self, app_id, app_name, app_title, title_is_default, tarball):

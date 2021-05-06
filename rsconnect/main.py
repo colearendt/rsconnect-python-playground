@@ -897,7 +897,7 @@ def deploy_help():
     click.echo()
 
 @deploy.command(
-    name="git-repo",
+    name="git",
     short_help="Deploy git repository with exisiting manifest file",
     help="Deploy git repository with exisiting manifest file"
 )
@@ -919,10 +919,10 @@ def deploy_help():
     help="The path to trusted TLS CA certificates.",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Print detailed messages.")
-@click.argument('app_name')
-@click.argument('repository')
-@click.argument('branch')
-@click.argument('subdirectory')
+@click.option('--app_name', '-a')
+@click.option('--repository', "-r")
+@click.option('--branch', "-b")
+@click.option('--subdirectory', "-d")
 def deploy_git(name, server, api_key, insecure, cacert, verbose, app_name, repository, branch, subdirectory):
     set_verbosity(verbose)
 
@@ -930,8 +930,14 @@ def deploy_git(name, server, api_key, insecure, cacert, verbose, app_name, repos
         connect_server = _validate_deploy_to_args(name, server, api_key, insecure, cacert)
 
     connect_client = api.RSConnect(connect_server)
-    connect_client.deploy_git(app_name, repository, branch, subdirectory)
+    
+    with cli_feedback("Deploying git repository"):
+        app = connect_client.deploy_git(app_name, repository, branch, subdirectory)
+     
 
+    click.secho("Git deployment completed successfully.", fg="bright_white")
+    click.secho("App available as %s" % app_name, fg="bright_white")
+        
 @cli.group(
     name="write-manifest",
     no_args_is_help=True,
