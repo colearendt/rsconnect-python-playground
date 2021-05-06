@@ -1085,6 +1085,47 @@ def _write_framework_manifest(
         with cli_feedback("Creating %s" % environment.filename):
             write_environment_file(environment, directory)
 
+
+@cli.group(no_args_is_help=True, help="Interact with content on RStudio Connect. ")
+def content():
+    pass
+
+
+# noinspection SpellCheckingInspection,DuplicatedCode
+@content.command(
+    name="tag",
+    short_help="Tag content on RStudio Connect",
+    help=(
+            "Tag content on RStudio Connect"
+    ),
+)
+@click.option("--name", "-n", help="The nickname of the RStudio Connect server to deploy to.")
+@click.option(
+    "--server", "-s", envvar="CONNECT_SERVER", help="The URL for the RStudio Connect server to deploy to.",
+)
+@click.option(
+    "--api-key", "-k", envvar="CONNECT_API_KEY", help="The API key to use to authenticate with RStudio Connect.",
+)
+@click.option(
+    "--insecure", "-i", envvar="CONNECT_INSECURE", is_flag=True, help="Disable TLS certification/host validation.",
+)
+@click.option(
+    "--cacert",
+    "-c",
+    envvar="CONNECT_CA_CERTIFICATE",
+    type=click.File(),
+    help="The path to trusted TLS CA certificates.",
+)
+@click.option(
+    "--app-id", "-a", help="Existing app ID or GUID to replace. Cannot be used with --new.",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Print detailed messages.")
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, file_okay=True))
+@click.argument('tag_array', nargs=-1)
+def content_tag():
+    return
+
+
 @cli.group(no_args_is_help=True, help="Interact with tags on RStudio Connect. "
                                       "Usually requires administrator permissions")
 def tag():
