@@ -1085,7 +1085,7 @@ def _write_framework_manifest(
         with cli_feedback("Creating %s" % environment.filename):
             write_environment_file(environment, directory)
 
-@cli.group(no_args_is_help=True, help="Create entities (i.e. tags) on RStudio Connect. "
+@cli.group(no_args_is_help=True, help="Interact with tags on RStudio Connect. "
                                       "Usually requires administrator permissions")
 def tag():
     pass
@@ -1126,6 +1126,11 @@ def create_tag(name, server, api_key, insecure, cacert, verbose, tag_array):
 
     connect_client = api.RSConnect(connect_server)
 
+    with cli_feedback("Creating tag tree"):
+        tag_tree = api.create_tag_tree(connect_client, *tag_array)
+        tag_tree_names = ['"' + tag['name'] + '"' for tag in tag_tree]
+
+    click.secho("    Tag tree created: %s" % " >> ".join(tag_tree_names))
 
 if __name__ == "__main__":
     cli()
