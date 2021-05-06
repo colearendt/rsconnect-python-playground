@@ -99,27 +99,6 @@ def _create_ssl_connection(host_name, port, disable_tls_check, ca_data, timeout)
         return tmp
 
 
-def append_query_params(uri="", join_by="&", **kwargs):
-    """
-    Append query parameters with an optional base URI. Removes
-    kwargs with type NoneType, and joins by the join_by string
-
-    :param uri: The base URI. If specified, will join to params with "?"
-    :param join_by: The string to join parameters by
-    :param kwargs: key=value pairs that will become query parameters
-    :return: A string. If uri is provided with non-empty kwargs, {uri}?{key}={value}{join_by}{key}={value}
-    """
-    all_params = ["%s=%s" % (key,value) for key,value in kwargs.items() if value.__class__ is not None.__class__]
-    output_params = join_by.join(all_params)
-    if output_params == "":
-        return uri
-
-    if uri == "":
-        return output_params
-
-    return uri + "?" + output_params
-
-
 def append_to_path(uri, path):
     """
     This is a helper function for appending a path to a URI (i.e, just the path portion
