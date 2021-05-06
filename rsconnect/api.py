@@ -6,7 +6,7 @@ import time
 from _ssl import SSLError
 from os import environ
 
-from rsconnect.http_support import HTTPResponse, HTTPServer, append_to_path, CookieJar, append_query_params
+from rsconnect.http_support import HTTPResponse, HTTPServer, append_to_path, CookieJar
 from rsconnect.log import logger
 from rsconnect.models import AppModes
 
@@ -536,6 +536,14 @@ def find_unique_name(connect_server, name):
         name = test
 
     return name
+
+
+def create_tag_tree(connect, *args):
+    return
+
+
+def filter_tags(tags, parent_id):
+    return [tag for tag in tags if tag['parent_id'] == parent_id]
 
 
 def recursive_find_tag(tags, tag, parent_id=None):
