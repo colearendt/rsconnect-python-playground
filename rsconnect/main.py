@@ -1087,12 +1087,12 @@ def _write_framework_manifest(
 
 @cli.group(no_args_is_help=True, help="Create entities (i.e. tags) on RStudio Connect. "
                                       "Usually requires administrator permissions")
-def create():
+def tag():
     pass
 
 # noinspection SpellCheckingInspection,DuplicatedCode
-@create.command(
-    name="tag",
+@tag.command(
+    name="create",
     short_help="Create a tag on RStudio Connect",
     help=(
         "Create a tag on RStudio Connect"
