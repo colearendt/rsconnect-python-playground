@@ -24,6 +24,12 @@ class RSConnectException(Exception):
         self.message = message
 
 
+class RSConnectTagFindException(RSConnectException):
+    def __init__(self, message):
+        super(RSConnectException, self).__init__(message)
+        self.message = message
+
+
 class RSConnectServer(object):
     """
     A simple class to encapsulate the information needed to interact with an
@@ -106,6 +112,17 @@ class RSConnect(HTTPServer):
     def app_config(self, app_id):
         return self.get("applications/%s/config" % app_id)
 
+    def app_tag(self, app_id, tag_id):
+        return self.post(
+            "applications/%s/tags" % app_id,
+            body={"id": tag_id}
+        )
+
+    def app_tag_delete(self, app_id, tag_id):
+        return self.delete(
+            "applications/%s/tags/%s" % (app_id, tag_id)
+        )
+
     def inst_static(self):
         return self.get("v1/instrumentation/content/visits")
 
@@ -123,6 +140,18 @@ class RSConnect(HTTPServer):
         if parent_id:
             body.update(parent_id=parent_id)
         return self.post("tags", body=body)
+
+    def tag_get_by_name(self, name, parent_id=None):
+        tags = self.tag_get()
+        self._server.handle_bad_response(tags)
+        peer_tags = filter_tags(tags, parent_id=parent_id)
+
+        match = [tag for tag in peer_tags if tag['name'] == name]
+        if len(match) > 0:
+            logger.info("Existing tag: '%s' with parent: %s" % (name, parent_id))
+            return match[0]
+
+        raise RSConnectException("Could not find ")
 
     def tag_create_safe(self, name, parent_id=None):
         tags = self.tag_get()
@@ -170,17 +199,17 @@ class RSConnect(HTTPServer):
         # check for app ensure
         app = self.app_create(app_name)
         self._server.handle_bad_response(app)
-        
-        self.post("applications/%s/repo" % app["guid"], 
-            body = { 
+
+        self.post("applications/%s/repo" % app["guid"],
+            body = {
                 "repository" : repository, "branch" : branch , "subdirectory" : subdirectory
             }
         )
-        
+
         self.post("applications/%s/deploy" % app["guid"], body = dict())
-        
-    
-    
+
+
+
     def deploy(self, app_id, app_name, app_title, title_is_default, tarball):
 
         app = self.app_ensure(app_id=app_id, app_name=app_name)
@@ -567,6 +596,11 @@ def find_unique_name(connect_server, name):
 
     return name
 
+def get_tag_tree(connect, *args):
+    parent_id = None
+    tag_tree = []
+    for tag in args:
+
 
 def create_tag_tree(connect: RSConnect, *args, verbose=False) -> list:
     parent_id = None
@@ -576,6 +610,9 @@ def create_tag_tree(connect: RSConnect, *args, verbose=False) -> list:
         parent_id = res['id']
         tag_tree.append(res)
     return tag_tree
+
+def content_tag_tree(connect, app_id, *args):
+
 
 
 def filter_tags(tags, parent_id):
