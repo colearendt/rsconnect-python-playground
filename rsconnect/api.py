@@ -124,14 +124,29 @@ class RSConnect(HTTPServer):
             body.update(parent_id=parent_id)
         return self.post("tags", body=body)
 
-    def tag_get(self, id=None):
-        if id:
-            return self.get("tags/%s" % id)
+    def tag_create_safe(self, name, parent_id=None):
+        tags = self.tag_get()
+        self._server.handle_bad_response(tags)
+        peer_tags = filter_tags(tags, parent_id=parent_id)
+
+        match = [tag for tag in peer_tags if tag['name'] == name]
+        if len(match) > 0:
+            logger.info("Tag already exists: '%s' with parent: %s" % (name, parent_id))
+            return match[0]
+
+        logger.info("Creating tag: '%s' with parent: %s" % (name, parent_id))
+        created_tag = self.tag_create(name=name, parent_id=parent_id)
+        self._server.handle_bad_response(created_tag)
+        return created_tag
+
+    def tag_get(self, tag_id=None):
+        if tag_id:
+            return self.get("tags/%s" % tag_id)
         return self.get("tags")
 
-    def tag_delete(self, id):
-        tag_version = self.tag_get(id=id)['version']
-        return self.delete("tags/%s?version=%s" % (id, tag_version))
+    def tag_delete(self, tag_id):
+        tag_version = self.tag_get(tag_id=tag_id)['version']
+        return self.delete("tags/%s?version=%s" % (tag_id, tag_version))
 
     def task_get(self, task_id, first_status=None):
         params = None
@@ -538,16 +553,15 @@ def find_unique_name(connect_server, name):
     return name
 
 
-def create_tag_tree(connect, *args):
-    return
+def create_tag_tree(connect: RSConnect, *args, verbose=False) -> list:
+    parent_id = None
+    tag_tree = []
+    for tag in args:
+        res = connect.tag_create_safe(tag, parent_id)
+        parent_id = res['id']
+        tag_tree.append(res)
+    return tag_tree
 
 
 def filter_tags(tags, parent_id):
     return [tag for tag in tags if tag['parent_id'] == parent_id]
-
-
-def recursive_find_tag(tags, tag, parent_id=None):
-    tags_noname = tags
-    tags_noname['name'] = None
-    tags_noname['id'] = None
-    recurse_result = [x['children'] for x in tags_noname if len(x['children'])]
