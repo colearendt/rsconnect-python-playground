@@ -568,7 +568,7 @@ def find_unique_name(connect_server, name):
     return name
 
 
-def create_tag_tree(connect, *args, verbose=False):
+def create_tag_tree(connect, *args):
     parent_id = None
     tag_tree = []
     for tag in args:
