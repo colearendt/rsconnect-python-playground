@@ -210,6 +210,9 @@ class HTTPServer(object):
     def get(self, path, query_params=None):
         return self.request("GET", path, query_params)
 
+    def delete(self, path, query_params=None):
+        return self.request("DELETE", path, query_params=query_params)
+
     def post(self, path, query_params=None, body=None):
         return self.request("POST", path, query_params, body)
 
