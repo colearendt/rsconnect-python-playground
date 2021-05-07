@@ -600,7 +600,7 @@ def find_unique_name(connect_server, name):
     return name
 
 
-def get_tag_tree(connect: RSConnect, *args):
+def get_tag_tree(connect, *args):
     # TODO: check for valid characters in args / tag names
     encoded_args = [urllib.parse.quote(arg) for arg in args]
     bottom_tag = connect.tag_get_path(",".join(encoded_args))
