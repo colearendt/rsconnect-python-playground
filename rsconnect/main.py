@@ -931,14 +931,21 @@ def deploy_git(name, server, api_key, insecure, cacert, verbose, app_name, repos
         connect_server = _validate_deploy_to_args(name, server, api_key, insecure, cacert)
 
     connect_client = api.RSConnect(connect_server)
-    
+
     with cli_feedback("Deploying git repository"):
         app = connect_client.deploy_git(app_name, repository, branch, subdirectory)
-     
+
+    with cli_feedback(""):
+        click.secho("\nDeployment log:", fg="bright_white")
+        app_url, _ = spool_deployment_log(connect_server, app, click.echo)
+        click.secho("Deployment completed successfully.", fg="bright_white")
+        click.secho("    Dashboard content URL: %s" % app_url, fg="bright_white")
+        click.secho("    Direct content URL: %s" % app["app_url"], fg="bright_white")
+
 
     click.secho("Git deployment completed successfully.", fg="bright_white")
     click.secho("App available as %s" % app_name, fg="bright_white")
-        
+
 @cli.group(
     name="write-manifest",
     no_args_is_help=True,
