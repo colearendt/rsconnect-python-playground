@@ -45,6 +45,21 @@ class RSConnectServer(object):
         # This is specifically not None.
         self.cookie_jar = CookieJar()
 
+    def handle_bad_response_generic(self, response):
+        if isinstance(response, HTTPResponse):
+            if response.exception:
+                raise RSConnectException("Exception trying to connect to %s - %s" % (self.url, response.exception))
+            # Sometimes an ISP will respond to an unknown server name by returning a friendly
+            # search page so trap that since we know we're expecting JSON from Connect.  This
+            # also catches all error conditions which we will report as "not running Connect".
+            else:
+                if response.json_data and "error" in response.json_data:
+                    error = "The Connect server reported an error: %s" % response.json_data["error"]
+                    raise RSConnectException(error)
+                raise RSConnectException(
+                    "Received an unexpected response from RStudio Connect: %s %s" % (response.status, response.reason)
+                )
+
     def handle_bad_response(self, response):
         if isinstance(response, HTTPResponse):
             if response.exception:
