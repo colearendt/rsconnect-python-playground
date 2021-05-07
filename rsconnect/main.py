@@ -1085,6 +1085,52 @@ def _write_framework_manifest(
         with cli_feedback("Creating %s" % environment.filename):
             write_environment_file(environment, directory)
 
+@cli.group(no_args_is_help=True, help="Interact with tags on RStudio Connect. "
+                                      "Usually requires administrator permissions")
+def tag():
+    pass
+
+# noinspection SpellCheckingInspection,DuplicatedCode
+@tag.command(
+    name="create",
+    short_help="Create a tag on RStudio Connect",
+    help=(
+        "Create a tag on RStudio Connect"
+    ),
+)
+@click.option("--name", "-n", help="The nickname of the RStudio Connect server to deploy to.")
+@click.option(
+    "--server", "-s", envvar="CONNECT_SERVER", help="The URL for the RStudio Connect server to deploy to.",
+)
+@click.option(
+    "--api-key", "-k", envvar="CONNECT_API_KEY", help="The API key to use to authenticate with RStudio Connect.",
+)
+@click.option(
+    "--insecure", "-i", envvar="CONNECT_INSECURE", is_flag=True, help="Disable TLS certification/host validation.",
+)
+@click.option(
+    "--cacert",
+    "-c",
+    envvar="CONNECT_CA_CERTIFICATE",
+    type=click.File(),
+    help="The path to trusted TLS CA certificates.",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Print detailed messages.")
+@click.argument('tag_array', nargs=-1)
+def create_tag(name, server, api_key, insecure, cacert, verbose, tag_array):
+    set_verbosity(verbose)
+
+    with cli_feedback("Checking arguments"):
+        connect_server = _validate_deploy_to_args(name, server, api_key, insecure, cacert)
+        # TODO: check that can write tags...
+
+    connect_client = api.RSConnect(connect_server)
+
+    with cli_feedback("Creating tag tree"):
+        tag_tree = api.create_tag_tree(connect_client, *tag_array)
+        tag_tree_names = ['"' + tag['name'] + '"' for tag in tag_tree]
+
+    click.secho("    Tag tree created: %s" % " >> ".join(tag_tree_names))
 
 if __name__ == "__main__":
     cli()

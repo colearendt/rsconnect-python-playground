@@ -124,12 +124,29 @@ class RSConnect(HTTPServer):
             body.update(parent_id=parent_id)
         return self.post("tags", body=body)
 
-    def tag_get(self, id):
-        return self.get("tags/%s" % id)
+    def tag_create_safe(self, name, parent_id=None):
+        tags = self.tag_get()
+        self._server.handle_bad_response(tags)
+        peer_tags = filter_tags(tags, parent_id=parent_id)
 
-    def tag_delete(self, id):
-        tag_version = self.tag_get(id=id)['version']
-        return self.delete("tags/%s?version=%s" % (id, tag_version))
+        match = [tag for tag in peer_tags if tag['name'] == name]
+        if len(match) > 0:
+            logger.info("Tag already exists: '%s' with parent: %s" % (name, parent_id))
+            return match[0]
+
+        logger.info("Creating tag: '%s' with parent: %s" % (name, parent_id))
+        created_tag = self.tag_create(name=name, parent_id=parent_id)
+        self._server.handle_bad_response(created_tag)
+        return created_tag
+
+    def tag_get(self, tag_id=None):
+        if tag_id:
+            return self.get("tags/%s" % tag_id)
+        return self.get("tags")
+
+    def tag_delete(self, tag_id):
+        tag_version = self.tag_get(tag_id=tag_id)['version']
+        return self.delete("tags/%s?version=%s" % (tag_id, tag_version))
 
     def task_get(self, task_id, first_status=None):
         params = None
@@ -153,17 +170,17 @@ class RSConnect(HTTPServer):
         # check for app ensure
         app = self.app_create(app_name)
         self._server.handle_bad_response(app)
-        
-        self.post("applications/%s/repo" % app["guid"], 
-            body = { 
+
+        self.post("applications/%s/repo" % app["guid"],
+            body = {
                 "repository" : repository, "branch" : branch , "subdirectory" : subdirectory
             }
         )
-        
+
         self.post("applications/%s/deploy" % app["guid"], body = dict())
-        
-    
-    
+
+
+
     def deploy(self, app_id, app_name, app_title, title_is_default, tarball):
 
         app = self.app_ensure(app_id=app_id, app_name=app_name)
@@ -549,3 +566,17 @@ def find_unique_name(connect_server, name):
         name = test
 
     return name
+
+
+def create_tag_tree(connect, *args):
+    parent_id = None
+    tag_tree = []
+    for tag in args:
+        res = connect.tag_create_safe(tag, parent_id)
+        parent_id = res['id']
+        tag_tree.append(res)
+    return tag_tree
+
+
+def filter_tags(tags, parent_id):
+    return [tag for tag in tags if tag['parent_id'] == parent_id]
