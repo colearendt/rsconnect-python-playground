@@ -875,6 +875,27 @@ def deploy_by_manifest(
     )
 
 
+def gather_app_id(connect_server, app_store, app_id):
+    """
+    Helps to gather the app_id for working with a content item.
+
+    :param connect_server: the Connect server object
+    :param app_store: the store for the specified deployment
+    :param app_id: The ID of the app to modify
+    """
+    if app_id is not None:
+        # don't read app metadata. Trust the app_id!
+        return app_id
+
+    app_id = app_store.resolve_no_deploy(connect_server.url, app_id)
+    if app_id is None:
+        raise api.RSConnectException(
+            "Application metadata could not be found. " 
+            "Please specify app_id or choose a deployed content item."
+        )
+    return app_id
+
+
 def gather_basic_deployment_info_for_notebook(connect_server, app_store, file_name, new, app_id, title, static):
     """
     Helps to gather the necessary info for performing a deployment.

@@ -413,3 +413,14 @@ class AppStore(DataStore):
         # app mode cannot be changed on redeployment
         app_mode = AppModes.get_by_name(metadata.get("app_mode"))
         return app_id, app_mode
+
+    def resolve_no_deploy(self, server, app_id):
+        metadata = self.get(server)
+        if metadata is None:
+            logger.debug("No app metadata for this server was found")
+
+        if app_id is None:
+            app_id = metadata.get("app_guid") or metadata.get("app_id")
+            logger.debug("Using saved app ID: %s" % app_id)
+
+        return app_id
