@@ -1122,14 +1122,18 @@ def content():
 )
 @click.option("--verbose", "-v", is_flag=True, help="Print detailed messages.")
 # TODO: maybe allow directories or files...?
-@click.argument("file", type=click.Path(exists=True, dir_okay=False, file_okay=True))
+@click.argument("app", type=click.Path(exists=True, dir_okay=True, file_okay=True))
 @click.argument('tag_array', nargs=-1)
-def content_tag(name, server, api_key, insecure, cacert, app_id, verbose, file, tag_array):
+def content_tag(name, server, api_key, insecure, cacert, app_id, verbose, app, tag_array):
 
     set_verbosity(verbose)
 
     with cli_feedback("Checking arguments"):
-        app_store = AppStore(file)
+        if isdir(app):
+            module_file = fake_module_file_from_directory(app)
+            app_store = AppStore(module_file)
+        else:
+            app_store = AppStore(app)
         connect_server = _validate_deploy_to_args(name, server, api_key, insecure, cacert)
         app_id = gather_app_id(connect_server, app_store, app_id)
 
