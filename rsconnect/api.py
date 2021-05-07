@@ -5,6 +5,7 @@ RStudio Connect API client and utility functions
 import time
 from _ssl import SSLError
 from os import environ
+import urllib.parse
 
 from rsconnect.http_support import HTTPResponse, HTTPServer, append_to_path, CookieJar
 from rsconnect.log import logger
@@ -24,6 +25,12 @@ class RSConnectException(Exception):
         self.message = message
 
 
+class RSConnectTagFindException(RSConnectException):
+    def __init__(self, message):
+        super(RSConnectException, self).__init__(message)
+        self.message = message
+
+
 class RSConnectServer(object):
     """
     A simple class to encapsulate the information needed to interact with an
@@ -37,6 +44,21 @@ class RSConnectServer(object):
         self.ca_data = ca_data
         # This is specifically not None.
         self.cookie_jar = CookieJar()
+
+    def handle_bad_response_generic(self, response):
+        if isinstance(response, HTTPResponse):
+            if response.exception:
+                raise RSConnectException("Exception trying to connect to %s - %s" % (self.url, response.exception))
+            # Sometimes an ISP will respond to an unknown server name by returning a friendly
+            # search page so trap that since we know we're expecting JSON from Connect.  This
+            # also catches all error conditions which we will report as "not running Connect".
+            else:
+                if response.json_data and "error" in response.json_data:
+                    error = "The Connect server reported an error: %s" % response.json_data["error"]
+                    raise RSConnectException(error)
+                raise RSConnectException(
+                    "Received an unexpected response from RStudio Connect: %s %s" % (response.status, response.reason)
+                )
 
     def handle_bad_response(self, response):
         if isinstance(response, HTTPResponse):
@@ -106,6 +128,22 @@ class RSConnect(HTTPServer):
     def app_config(self, app_id):
         return self.get("applications/%s/config" % app_id)
 
+    def app_tag(self, app_id, tag_id):
+        return self.post(
+            "v1/content/%s/tags" % app_id,
+            body={"tag_id": tag_id}
+        )
+
+    def app_tag_delete(self, app_id, tag_id):
+        return self.delete(
+            "v1/content/%s/tags/%s" % (app_id, tag_id)
+        )
+
+    def app_tag_list(self, app_id):
+        return self.get(
+            "v1/content/%s/tags" % app_id
+        )
+
     def inst_static(self):
         return self.get("v1/instrumentation/content/visits")
 
@@ -122,31 +160,40 @@ class RSConnect(HTTPServer):
         body = dict(name=name)
         if parent_id:
             body.update(parent_id=parent_id)
-        return self.post("tags", body=body)
+        return self.post("v1/tags", body=body)
 
-    def tag_create_safe(self, name, parent_id=None):
+    def tag_get_by_name(self, name, parent_id=None):
         tags = self.tag_get()
         self._server.handle_bad_response(tags)
         peer_tags = filter_tags(tags, parent_id=parent_id)
 
         match = [tag for tag in peer_tags if tag['name'] == name]
         if len(match) > 0:
-            logger.info("Tag already exists: '%s' with parent: %s" % (name, parent_id))
+            logger.info("Existing tag: '%s' with parent: %s" % (name, parent_id))
             return match[0]
 
-        logger.info("Creating tag: '%s' with parent: %s" % (name, parent_id))
-        created_tag = self.tag_create(name=name, parent_id=parent_id)
-        self._server.handle_bad_response(created_tag)
-        return created_tag
+        raise RSConnectTagFindException("Could not find tag: '%s'" % name)
+
+    def tag_create_safe(self, name, parent_id=None):
+        try:
+            tag = self.tag_get_by_name(name, parent_id)
+
+        except RSConnectTagFindException:
+            logger.info("Creating tag: '%s' with parent: %s" % (name, parent_id))
+            tag = self.tag_create(name=name, parent_id=parent_id)
+            self._server.handle_bad_response(tag)
+        return tag
+
+    def tag_get_path(self, path):
+        return self.get("v1/tags/%s" % path)
 
     def tag_get(self, tag_id=None):
         if tag_id:
-            return self.get("tags/%s" % tag_id)
-        return self.get("tags")
+            return self.get("v1/tags/%s" % tag_id)
+        return self.get("v1/tags")
 
     def tag_delete(self, tag_id):
-        tag_version = self.tag_get(tag_id=tag_id)['version']
-        return self.delete("tags/%s?version=%s" % (tag_id, tag_version))
+        return self.delete("v1/tags/%s" % tag_id)
 
     def task_get(self, task_id, first_status=None):
         params = None
@@ -568,7 +615,16 @@ def find_unique_name(connect_server, name):
     return name
 
 
+def get_tag_tree(connect, *args):
+    # TODO: check for valid characters in args / tag names
+    encoded_args = [urllib.parse.quote(arg) for arg in args]
+    bottom_tag = connect.tag_get_path(",".join(encoded_args))
+
+    return bottom_tag
+
+
 def create_tag_tree(connect, *args):
+    # TODO: check for valid characters in args / tag names
     parent_id = None
     tag_tree = []
     for tag in args:

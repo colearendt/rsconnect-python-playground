@@ -15,6 +15,7 @@ from rsconnect.actions import (
     create_notebook_deployment_bundle,
     deploy_bundle,
     describe_manifest,
+    gather_app_id,
     gather_basic_deployment_info_for_api,
     gather_basic_deployment_info_for_dash,
     gather_basic_deployment_info_for_streamlit,
@@ -1085,6 +1086,67 @@ def _write_framework_manifest(
         with cli_feedback("Creating %s" % environment.filename):
             write_environment_file(environment, directory)
 
+
+@cli.group(no_args_is_help=True, help="Interact with content on RStudio Connect. ")
+def content():
+    pass
+
+
+# noinspection SpellCheckingInspection,DuplicatedCode
+@content.command(
+    name="tag",
+    short_help="Tag content on RStudio Connect",
+    help=(
+            "Tag content on RStudio Connect"
+    ),
+)
+@click.option("--name", "-n", help="The nickname of the RStudio Connect server to deploy to.")
+@click.option(
+    "--server", "-s", envvar="CONNECT_SERVER", help="The URL for the RStudio Connect server to deploy to.",
+)
+@click.option(
+    "--api-key", "-k", envvar="CONNECT_API_KEY", help="The API key to use to authenticate with RStudio Connect.",
+)
+@click.option(
+    "--insecure", "-i", envvar="CONNECT_INSECURE", is_flag=True, help="Disable TLS certification/host validation.",
+)
+@click.option(
+    "--cacert",
+    "-c",
+    envvar="CONNECT_CA_CERTIFICATE",
+    type=click.File(),
+    help="The path to trusted TLS CA certificates.",
+)
+@click.option(
+    "--app-id", "-a", help="Existing app ID or GUID to replace. Cannot be used with --new.",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Print detailed messages.")
+# TODO: maybe allow directories or files...?
+@click.argument("app", type=click.Path(exists=True, dir_okay=True, file_okay=True))
+@click.argument('tag_array', nargs=-1)
+def content_tag(name, server, api_key, insecure, cacert, app_id, verbose, app, tag_array):
+
+    set_verbosity(verbose)
+
+    with cli_feedback("Checking arguments"):
+        if isdir(app):
+            module_file = fake_module_file_from_directory(app)
+            app_store = AppStore(module_file)
+        else:
+            app_store = AppStore(app)
+        connect_server = _validate_deploy_to_args(name, server, api_key, insecure, cacert)
+        app_id = gather_app_id(connect_server, app_store, app_id)
+
+    connect_client = api.RSConnect(connect_server)
+    with cli_feedback("Tagging content"):
+        new_tag = api.get_tag_tree(connect_client, *tag_array)
+        connect_server.handle_bad_response_generic(new_tag)
+        connect_client.app_tag(app_id, new_tag["id"])
+        # TODO: some type of error handling...
+
+    click.secho("    Successfully tagged app %s : %s" % (app_id, format_tag_tree(tag_array)))
+
+
 @cli.group(no_args_is_help=True, help="Interact with tags on RStudio Connect. "
                                       "Usually requires administrator permissions")
 def tag():
@@ -1128,9 +1190,15 @@ def create_tag(name, server, api_key, insecure, cacert, verbose, tag_array):
 
     with cli_feedback("Creating tag tree"):
         tag_tree = api.create_tag_tree(connect_client, *tag_array)
-        tag_tree_names = ['"' + tag['name'] + '"' for tag in tag_tree]
+        tag_tree_names = [tag['name'] for tag in tag_tree]
 
-    click.secho("    Tag tree created: %s" % " >> ".join(tag_tree_names))
+    click.secho("    Tag tree created: %s" % format_tag_tree(tag_tree_names))
+
+
+def format_tag_tree(tag_array):
+    quoted = ['"' + tag + '"' for tag in tag_array]
+    return " >> ".join(quoted)
+
 
 if __name__ == "__main__":
     cli()
