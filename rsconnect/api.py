@@ -602,7 +602,7 @@ def get_tag_tree(connect, *args):
     for tag in args:
 
 
-def create_tag_tree(connect: RSConnect, *args, verbose=False) -> list:
+def create_tag_tree(connect, *args):
     parent_id = None
     tag_tree = []
     for tag in args:
