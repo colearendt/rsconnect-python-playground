@@ -1136,7 +1136,7 @@ def content_tag(name, server, api_key, insecure, cacert, app_id, verbose, file, 
     connect_client = api.RSConnect(connect_server)
     with cli_feedback("Tagging content"):
         new_tag = api.get_tag_tree(connect_client, *tag_array)
-        connect_server.handle_bad_response(new_tag)
+        connect_server.handle_bad_response_generic(new_tag)
         connect_client.app_tag(app_id, new_tag["id"])
         # TODO: some type of error handling...
 
